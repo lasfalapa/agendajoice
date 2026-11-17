@@ -190,7 +190,7 @@ function render(){
   
   const activeCatModal = $('#md').dataset.activeCat;
   if(activeCatModal && !$('#md').hidden){
-    showCatList(activeCatModal, true);
+    showCatList(activeCatModal);
   }
 }
 
@@ -276,7 +276,7 @@ document.addEventListener('click',e=>{
   if(doneBtn){
     e.stopPropagation();
     const id=doneBtn.dataset.done;
-    const a=DB.appts.appts.find(x=>x.id===id)||DB.appts.find(x=>x.id===id);
+    const a=DB.appts.find(x=>x.id===id);
     if(a){a.done=!a.done;save();render()}
     return;
   }
