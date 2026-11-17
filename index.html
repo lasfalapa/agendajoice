@@ -35,10 +35,11 @@ small,.em{color:var(--mt)}
 .cd{background:var(--cd);border:1px solid var(--ln);border-radius:18px;padding:14px;margin-bottom:10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g2 .cd{margin:0}
 .g5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
-.g5 .cd{margin:0;padding:10px 4px;text-align:center;cursor:pointer;transition:transform .1s ease,border-color .1s ease}
+.g5 .cd{margin:0;padding:8px 4px;text-align:center;cursor:pointer;transition:transform .1s ease,border-color .1s ease}
 .g5 .cd:active{transform:scale(0.96)}
-.g5 b{font-size:1.2rem;display:block;color:var(--c)}
-.g5 span{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mt);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g5 b{font-size:1.1rem;display:block;color:var(--c)}
+.g5 span{font-size:.6rem;text-transform:uppercase;letter-spacing:.03em;color:var(--mt);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g5 .emj{font-size:.9rem;display:block;margin-top:1px}
 .st{display:flex;flex-direction:column}.st b{font:700 2.3rem/1 Didot,Georgia,serif;color:var(--gd)}.st span{font-weight:600}
 .wk{position:relative;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:2px 14px 8px;scrollbar-width:none}
 .wk::-webkit-scrollbar{display:none}
@@ -110,7 +111,7 @@ nav span{font-size:.7rem}nav .on{color:var(--gd);font-weight:700}
 <div id="md" hidden></div>
 <input type="file" id="fi" hidden>
 <script>
-const KEY='jvb_db',CATS={'Debutante':{c:'#d86fb0',d:180},'Noiva':{c:'#d9a93f',d:240},'Social':{c:'#5f9fd8',d:90},'MakeUp':{c:'#e57373',d:60},'Atendimento Padrão':{c:'#5fb77f',d:60}};
+const KEY='jvb_db',CATS={'Debutante':{c:'#d86fb0',d:180,e:'👑'},'Noiva':{c:'#d9a93f',d:240,e:'💍'},'Social':{c:'#5f9fd8',d:90,e:'✨'},'MakeUp':{c:'#e57373',d:60,e:'💄'},'Atendimento Padrão':{c:'#5fb77f',d:60,e:'💇‍♀️'}};
 const BGS=['linear-gradient(135deg,#f6d5d8,#fbe9d7 50%,#f3c9d6)','radial-gradient(circle at 20% 10%,#f9e3c3,transparent 50%),radial-gradient(circle at 80% 90%,#e8b4c0,transparent 55%),#fff1e6','linear-gradient(160deg,#2a1420,#5a2a3c 55%,#b76e79)','linear-gradient(135deg,#1b1b2f,#3b2a4f 55%,#c9a24d)'];
 const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -156,7 +157,7 @@ function home(){
   return `<div class="g2"><div class="cd st"><b>${td.length}</b><span>hoje</span><small>${nx?'Próximo: '+hm(nx.start)+' · '+esc(nx.name):td.length?'Dia concluído ✓':'Dia livre'}</small></div>
 <div class="cd st"><b>${wk.length}</b><span>esta & próx. semana</span><small>${dl(w,{day:'2-digit',month:'short'})} – ${dl(weEnd,{day:'2-digit',month:'short'})}</small></div></div>
 <h3>Dias · arraste para o lado</h3><div class="wk">${days.map((d,i)=>`<button class="${d===t?'tdy':''}${cnt[d]?' hv':''}" data-go="${d}"><small>${dl(d,{weekday:'short'}).replace('.','')}${d.endsWith('-01')||!i?' '+dl(d,{month:'short'}).replace('.',''):''}</small><b>${pd(d).getDate()}</b><i>${cnt[d]||'·'}</i></button>`).join('')}</div>
-<div class="g5">${Object.keys(CATS).map(k=>`<div class="cd" style="--c:${CATS[k].c}" data-cat-view="${k}"><b>${catCounts[k]}</b><span>${k.replace('Atendimento Padrão','Padrão')}</span></div>`).join('')}</div>
+<div class="g5">${Object.keys(CATS).map(k=>`<div class="cd" style="--c:${CATS[k].c}" data-cat-view="${k}"><b>${catCounts[k]}</b><span>${k.replace('Atendimento Padrão','Padrão')}</span><i class="emj">${CATS[k].e}</i></div>`).join('')}</div>
 <h3>Hoje · ${dl(t,{weekday:'long',day:'numeric',month:'long'})}</h3>${dayOf(t).length?dayOf(t).map(card).join(''):'<p class="em">Nenhum atendimento hoje.</p>'}`;
 }
 
@@ -187,19 +188,18 @@ function render(){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   $('#fab').hidden=tab==='cfg';
   
-  // Se o modal de categoria estiver aberto, atualiza ele também em tempo real
   const activeCatModal = $('#md').dataset.activeCat;
   if(activeCatModal && !$('#md').hidden){
     showCatList(activeCatModal, true);
   }
 }
 
-function showCatList(catName, keepScroll){
+function showCatList(catName){
   const t=ymd(new Date()),w=mon(t),weEnd=ad(w,13);
   const list=DB.appts.filter(a=>a.cat===catName&&a.date>=w&&a.date<=weEnd&&!a.done).sort((a,b)=>a.date.localeCompare(b.date)||a.start-b.start);
   const md=$('#md');
   md.dataset.activeCat = catName;
-  md.innerHTML=`<div class="sh"><h2>${esc(catName)}</h2><small>Esta & próxima semana</small><div style="margin-top:12px">${list.length?list.map(a=>`<div class="cd ap${a.done?' done':''}" style="--c:${CATS[catName].c}"><div class="tm"><b>${dl(a.date,{day:'2-digit',month:'2-digit'})}</b><small>${hm(a.start)}</small></div><div class="bd" style="cursor:pointer" data-ed="${a.id}"><b>${esc(a.name)}</b><div class="tag">${a.svc?esc(a.svc):'Atendimento'} ${a.price!=null&&a.price!==''?' · '+fmtMoney(a.price):''}</div></div><div class="actions"><button class="done-btn${a.done?' active':''}" data-done="${a.id}" title="Marcar como concluído">✓</button></div></div>`).join(''):'<p class="em">Nenhum atendimento nesta categoria.</p>'}</div><div class="row" style="margin-top:16px"><button class="bt" id="clcat">Fechar</button></div></div>`;
+  md.innerHTML=`<div class="sh"><h2>${CATS[catName].e} ${esc(catName)}</h2><small>Esta & próxima semana</small><div style="margin-top:12px">${list.length?list.map(a=>`<div class="cd ap${a.done?' done':''}" style="--c:${CATS[catName].c}"><div class="tm"><b>${dl(a.date,{day:'2-digit',month:'2-digit'})}</b><small>${hm(a.start)}</small></div><div class="bd" style="cursor:pointer" data-ed="${a.id}"><b>${esc(a.name)}</b><div class="tag">${a.svc?esc(a.svc):'Atendimento'} ${a.price!=null&&a.price!==''?' · '+fmtMoney(a.price):''}</div></div><div class="actions"><button class="done-btn${a.done?' active':''}" data-done="${a.id}" title="Marcar como concluído">✓</button></div></div>`).join(''):'<p class="em">Nenhum atendimento nesta categoria.</p>'}</div><div class="row" style="margin-top:16px"><button class="bt" id="clcat">Fechar</button></div></div>`;
   md.hidden=false;
   md.onclick=e=>{if(e.target===md)closeModal()};
   $('#clcat').onclick=closeModal;
@@ -276,7 +276,7 @@ document.addEventListener('click',e=>{
   if(doneBtn){
     e.stopPropagation();
     const id=doneBtn.dataset.done;
-    const a=DB.appts.find(x=>x.id===id);
+    const a=DB.appts.appts.find(x=>x.id===id)||DB.appts.find(x=>x.id===id);
     if(a){a.done=!a.done;save();render()}
     return;
   }
