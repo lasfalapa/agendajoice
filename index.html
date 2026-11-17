@@ -157,7 +157,6 @@ function home(){
   DB.appts.forEach(a=>{if(!a.done)cnt[a.date]=(cnt[a.date]||0)+1});
   const days=[...Array(140)].map((_,i)=>ad(t,i-14));
   
-  // Contagem para os 5 quadrinhos (ano inteiro: ano atual)
   const catCounts={};
   Object.keys(CATS).forEach(k=>catCounts[k]=0);
   DB.appts.filter(a=>a.date.startsWith(curYear+'')&&!a.done).forEach(a=>{if(catCounts[a.cat]!==undefined)catCounts[a.cat]++});
@@ -245,7 +244,7 @@ function form(id){
     const c=clash(date,s,du,id);
     if(c&&!done)return err(`⚠️ Conflito com <b>${esc(c.name)}</b> (${hm(c.start)}–${hm(c.start+c.dur)}).`,nextFree(date,s,du,id));
     const price=rawPrice!==''?parseFloat(rawPrice):null;
-    const o={id:id||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,tel:$('#ftl}.value.trim()||'',cat,svc:$('#fs').value.trim(),date,start:s,dur:du,price,done,obs:$('#fo').value.trim()};
+    const o={id:id||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,tel:$('#ftl').value.trim(),cat,svc:$('#fs').value.trim(),date,start:s,dur:du,price,done,obs:$('#fo').value.trim()};
     DB.appts=id?DB.appts.map(x=>x.id===id?o:x):[...DB.appts,o];
     save();day=date;mo=date.slice(0,8)+'01';close();if(tab==='cfg')tab='agenda';render();
   };
