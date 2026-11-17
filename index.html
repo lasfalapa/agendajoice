@@ -34,6 +34,11 @@ h3{margin:20px 4px 8px;font-size:.76rem;letter-spacing:.12em;text-transform:uppe
 small,.em{color:var(--mt)}
 .cd{background:var(--cd);border:1px solid var(--ln);border-radius:18px;padding:14px;margin-bottom:10px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g2 .cd{margin:0}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.g5 .cd{margin:0;padding:10px 4px;text-align:center;cursor:pointer;transition:transform .1s ease,border-color .1s ease}
+.g5 .cd:active{transform:scale(0.96)}
+.g5 b{font-size:1.2rem;display:block;color:var(--c)}
+.g5 span{font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mt);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .st{display:flex;flex-direction:column}.st b{font:700 2.3rem/1 Didot,Georgia,serif;color:var(--gd)}.st span{font-weight:600}
 .wk{position:relative;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:2px 14px 8px;scrollbar-width:none}
 .wk::-webkit-scrollbar{display:none}
@@ -49,9 +54,14 @@ small,.em{color:var(--mt)}
 .mo .tdy{border-color:var(--gd);box-shadow:0 0 0 1px var(--gd)}
 .mo i{position:absolute;top:1px;right:3px;font-style:normal;font-size:.56rem;color:var(--gd);font-weight:700}
 .ap{display:flex;gap:12px;align-items:center;border-left:5px solid var(--c);cursor:pointer;padding:12px}
+.ap.done{opacity:.55;background:rgba(120,120,120,.08)}
+.ap.done .bd b{text-decoration:line-through}
 .tm{display:flex;flex-direction:column;min-width:46px;text-align:center}.tm b{font-size:1.05rem}
 .bd{flex:1;min-width:0}.tag{font-size:.82rem;color:var(--c);font-weight:600}
-.wa{font-size:1.4rem;text-decoration:none}
+.actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.wa{font-size:1.3rem;text-decoration:none}
+.done-btn{background:none;border:1px solid var(--ln);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:1rem;cursor:pointer;color:var(--tx);opacity:.4;transition:all .2s;background:var(--cd)}
+.done-btn.active{opacity:1;border-color:var(--gd);color:var(--gd);background:rgba(184,137,46,.15)}
 .dn{display:flex;align-items:center;justify-content:space-between;text-align:center}
 .dn div{display:flex;flex-direction:column;text-transform:capitalize}
 .dn button{font-size:1.8rem;background:none;border:0;color:var(--gd);padding:0 12px}
@@ -78,6 +88,9 @@ nav span{font-size:.7rem}nav .on{color:var(--gd);font-weight:700}
 #md{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
 .sh{width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--bg);color:var(--tx);border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
 .sh h2{margin:0 0 4px;font-family:Didot,Georgia,serif;color:var(--gd)}
+.chk-row{display:flex;align-items:center;gap:8px;margin-top:12px}
+.chk-row input{width:20px;height:20px;margin:0;accent-color:var(--ac)}
+.chk-row label{margin:0;color:var(--tx);font-size:.9rem;cursor:pointer}
 </style>
 </head>
 <body>
@@ -115,7 +128,7 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){alert(
 let tab='home',day=ymd(new Date()),mo=day.slice(0,8)+'01';
 
 const dayOf=d=>DB.appts.filter(a=>a.date===d).sort((a,b)=>a.start-b.start);
-const clash=(d,s,du,id)=>DB.appts.find(a=>a.date===d&&a.id!==id&&s<a.start+a.dur&&a.start<s+du);
+const clash=(d,s,du,id)=>DB.appts.find(a=>a.date===d&&a.id!==id&&!a.done&&s<a.start+a.dur&&a.start<s+du);
 const nextFree=(d,s,du,id)=>{let c;while(c=clash(d,s,du,id))s=c.start+c.dur;return s+du<=1440?s:null};
 const wa=t=>{let d=t.replace(/\D/g,'');if(!(d.startsWith('55')&&d.length>11))d='55'+d;return 'https://wa.me/'+d};
 const fmtMoney=v=>v!=null&&v!==''?Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):'';
@@ -128,28 +141,32 @@ function look(){
   const i=new Image();i.onload=()=>{$('#lg').innerHTML='';$('#lg').appendChild(i)};i.onerror=()=>{$('#lg').textContent='JV'};i.src=c.logo||'logo.png';
 }
 
-const card=a=>`<div class="cd ap" style="--c:${CATS[a.cat]?CATS[a.cat].c:'#999'}" data-ed="${a.id}"><div class="tm"><b>${hm(a.start)}</b><small>${hm(a.start+a.dur)}</small></div><div class="bd"><b>${esc(a.name)}</b><div class="tag">${esc(a.cat)}${a.svc?' · '+esc(a.svc):''}${a.price!=null&&a.price!==''?' · '+fmtMoney(a.price):''}</div>${a.obs?`<small>${esc(a.obs)}</small>`:''}</div>${a.tel?`<a class="wa" href="${wa(a.tel)}" onclick="event.stopPropagation()" target="_blank" rel="noopener">💬</a>`:''}</div>`;
+const card=a=>`<div class="cd ap${a.done?' done':''}" style="--c:${CATS[a.cat]?CATS[a.cat].c:'#999'}" data-ed="${a.id}"><div class="tm"><b>${hm(a.start)}</b><small>${hm(a.start+a.dur)}</small></div><div class="bd"><b>${esc(a.name)}</b><div class="tag">${esc(a.cat)}${a.svc?' · '+esc(a.svc):''}${a.price!=null&&a.price!==''?' · '+fmtMoney(a.price):''}${a.done?' · ✓ Concluído':''}</div>${a.obs?`<small>${esc(a.obs)}</small>`:''}</div><div class="actions">${a.tel?`<a class="wa" href="${wa(a.tel)}" onclick="event.stopPropagation()" target="_blank" rel="noopener" title="WhatsApp">💬</a>`:''}<button class="done-btn${a.done?' active':''}" data-done="${a.id}" title="${a.done?'Marcar como pendente':'Marcar como concluído'}">✓</button></div></div>`;
 
 function home(){
-  const t=ymd(new Date()),w=mon(t),we=ad(w,6),wk=DB.appts.filter(a=>a.date>=w&&a.date<=we),td=dayOf(t),n=new Date(),now=n.getHours()*60+n.getMinutes(),nx=td.find(a=>a.start+a.dur>now),
-  cc=Object.keys(CATS).map(k=>[k,wk.filter(a=>a.cat===k).length]).filter(x=>x[1]),cnt={};
-  DB.appts.forEach(a=>cnt[a.date]=(cnt[a.date]||0)+1);
+  const t=ymd(new Date()),w=mon(t),weEnd=ad(w,13),wk=DB.appts.filter(a=>a.date>=w&&a.date<=weEnd&&!a.done),td=dayOf(t).filter(a=>!a.done),n=new Date(),now=n.getHours()*60+n.getMinutes(),nx=td.find(a=>a.start+a.dur>now),
+  cnt={};
+  DB.appts.forEach(a=>{if(!a.done)cnt[a.date]=(cnt[a.date]||0)+1});
   const days=[...Array(140)].map((_,i)=>ad(t,i-14));
+  
+  const catCounts={};
+  Object.keys(CATS).forEach(k=>catCounts[k]=0);
+  DB.appts.filter(a=>a.date>=w&&a.date<=weEnd&&!a.done).forEach(a=>{if(catCounts[a.cat]!==undefined)catCounts[a.cat]++});
+
   return `<div class="g2"><div class="cd st"><b>${td.length}</b><span>hoje</span><small>${nx?'Próximo: '+hm(nx.start)+' · '+esc(nx.name):td.length?'Dia concluído ✓':'Dia livre'}</small></div>
-<div class="cd st"><b>${wk.length}</b><span>na semana</span><small>${dl(w,{day:'2-digit',month:'short'})} – ${dl(we,{day:'2-digit',month:'short'})}</small></div></div>
+<div class="cd st"><b>${wk.length}</b><span>esta & próx. semana</span><small>${dl(w,{day:'2-digit',month:'short'})} – ${dl(weEnd,{day:'2-digit',month:'short'})}</small></div></div>
 <h3>Dias · arraste para o lado</h3><div class="wk">${days.map((d,i)=>`<button class="${d===t?'tdy':''}${cnt[d]?' hv':''}" data-go="${d}"><small>${dl(d,{weekday:'short'}).replace('.','')}${d.endsWith('-01')||!i?' '+dl(d,{month:'short'}).replace('.',''):''}</small><b>${pd(d).getDate()}</b><i>${cnt[d]||'·'}</i></button>`).join('')}</div>
-<h3>Hoje · ${dl(t,{weekday:'long',day:'numeric',month:'long'})}</h3>${td.length?td.map(card).join(''):'<p class="em">Nenhum atendimento hoje.</p>'}
-${cc.length?`<h3>Por categoria · semana</h3><div class="cd">${cc.map(([k,v])=>`<div class="cr"><span><i class="dot" style="background:${CATS[k].c}"></i>${k}</span><b>${v}</b></div>`).join('')}</div>`:''}`;
+<div class="g5">${Object.keys(CATS).map(k=>`<div class="cd" style="--c:${CATS[k].c}" data-cat-view="${k}"><b>${catCounts[k]}</b><span>${k.replace('Atendimento Padrão','Padrão')}</span></div>`).join('')}</div>
+<h3>Hoje · ${dl(t,{weekday:'long',day:'numeric',month:'long'})}</h3>${dayOf(t).length?dayOf(t).map(card).join(''):'<p class="em">Nenhum atendimento hoje.</p>'}`;
 }
 
 function agenda(){
   const l=dayOf(day),t=ymd(new Date()),f=pd(mo),ld=new Date(f.getFullYear(),f.getMonth()+1,0).getDate(),lead=(f.getDay()+6)%7,lab=f.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}),cnt={};
-  DB.appts.forEach(a=>cnt[a.date]=(cnt[a.date]||0)+1);
+  DB.appts.forEach(a=>{if(!a.done)cnt[a.date]=(cnt[a.date]||0)+1});
   const cells=[...Array(lead)].map(()=>'<span></span>').concat([...Array(ld)].map((_,i)=>{const d=mo.slice(0,8)+pad(i+1),c=cnt[d];return `<button class="${d===t?'tdy':''}${d===day?' sel':''}${c?' hv':''}" data-pk="${d}">${i+1}${c?`<i>${c}</i>`:''}</button>`}));
   return `<div class="cd mh"><div class="dn"><button data-m="-1">‹</button><b>${lab}</b><button data-m="1">›</button></div>
 <div class="mo wd">${['S','T','Q','Q','S','S','D'].map(x=>`<small>${x}</small>`).join('')}</div><div class="mo">${cells.join('')}</div></div>
 <div class="cd dn"><button data-d="-1">‹</button><div><b>${dl(day,{weekday:'long'})}</b><small>${dl(day,{day:'numeric',month:'long',year:'numeric'})}</small></div><button data-d="1">›</button></div>
-<div class="row"><button class="bt" data-d="0" ${day===t?'disabled':''}>Hoje</button></div>
 ${l.length?l.map(card).join(''):'<p class="em">Dia livre. Toque em + para agendar.</p>'}`;
 }
 
@@ -169,10 +186,29 @@ function render(){
   const sp=$('.wk');if(sp){const b=sp.querySelector('.tdy');sp.scrollLeft=keep!=null?keep:(b?b.offsetLeft-14:0)}
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
   $('#fab').hidden=tab==='cfg';
+  
+  // Se o modal de categoria estiver aberto, atualiza ele também em tempo real
+  const activeCatModal = $('#md').dataset.activeCat;
+  if(activeCatModal && !$('#md').hidden){
+    showCatList(activeCatModal, true);
+  }
 }
 
+function showCatList(catName, keepScroll){
+  const t=ymd(new Date()),w=mon(t),weEnd=ad(w,13);
+  const list=DB.appts.filter(a=>a.cat===catName&&a.date>=w&&a.date<=weEnd&&!a.done).sort((a,b)=>a.date.localeCompare(b.date)||a.start-b.start);
+  const md=$('#md');
+  md.dataset.activeCat = catName;
+  md.innerHTML=`<div class="sh"><h2>${esc(catName)}</h2><small>Esta & próxima semana</small><div style="margin-top:12px">${list.length?list.map(a=>`<div class="cd ap${a.done?' done':''}" style="--c:${CATS[catName].c}"><div class="tm"><b>${dl(a.date,{day:'2-digit',month:'2-digit'})}</b><small>${hm(a.start)}</small></div><div class="bd" style="cursor:pointer" data-ed="${a.id}"><b>${esc(a.name)}</b><div class="tag">${a.svc?esc(a.svc):'Atendimento'} ${a.price!=null&&a.price!==''?' · '+fmtMoney(a.price):''}</div></div><div class="actions"><button class="done-btn${a.done?' active':''}" data-done="${a.id}" title="Marcar como concluído">✓</button></div></div>`).join(''):'<p class="em">Nenhum atendimento nesta categoria.</p>'}</div><div class="row" style="margin-top:16px"><button class="bt" id="clcat">Fechar</button></div></div>`;
+  md.hidden=false;
+  md.onclick=e=>{if(e.target===md)closeModal()};
+  $('#clcat').onclick=closeModal;
+}
+
+function closeModal(){const md=$('#md');delete md.dataset.activeCat;md.hidden=true;md.innerHTML=''}
+
 function form(id){
-  const a=id?DB.appts.find(x=>x.id===id):{name:'',tel:'',svc:'',obs:'',date:day,cat:'Atendimento Padrão',dur:CATS['Atendimento Padrão'].d,start:540,price:''};
+  const a=id?DB.appts.find(x=>x.id===id):{name:'',tel:'',svc:'',obs:'',date:day,cat:'Atendimento Padrão',dur:CATS['Atendimento Padrão'].d,start:540,price:'',done:false};
   if(!id){const f=nextFree(a.date,a.start,a.dur);if(f!=null)a.start=f}
   let cat=a.cat,touched=!!id;
   const md=$('#md');
@@ -183,10 +219,11 @@ function form(id){
 <label>Serviço / detalhes<input id="fs" value="${esc(a.svc)}" placeholder="Ex.: penteado + maquiagem"></label>
 <div class="g3"><label>Data<input id="fd" type="date" value="${a.date}"></label><label>Início<input id="fh" type="time" step="900" value="${hm(a.start)}"></label><label>Duração (min)<input id="fu" type="number" min="15" step="15" value="${a.dur}"></label></div>
 <label>Valor (R$)<input id="fpr" type="number" step="0.01" value="${a.price!=null?a.price:''}" placeholder="0,00"></label>
+<div class="chk-row"><input type="checkbox" id="fdone" ${a.done?'checked':''}><label for="fdone">Marcar atendimento como concluído (libera horário)</label></div>
 <label>Observações<textarea id="fo" rows="2">${esc(a.obs)}</textarea></label>
-<div class="row"><button class="bt pr" id="sv">Salvar</button><button class="bt" id="cl">Cancelar</button>${id?'<button class="bt dg" id="dx">Excluir</button>':''}</div></div>`;
+<div class="row"><button class="bt pr" id="sv">Salvar</button><button class="bt" id="cl">Cancelar</button> ${id?'<button class="bt dg" id="dx">Excluir</button>':''}</div></div>`;
   md.hidden=false;
-  const close=()=>{md.hidden=true;md.innerHTML=''};
+  const close=()=>{closeModal()};
   const err=(m,n)=>{const e=$('#er');e.hidden=false;e.innerHTML=m+(n!=null?`<br><button class="bt" id="uf">Usar ${hm(n)}</button>`:'');if(n!=null)$('#uf').onclick=()=>{$('#fh').value=hm(n);e.hidden=true}};
   md.onclick=e=>{if(e.target===md)close()};
   $('#cl').onclick=close;
@@ -194,13 +231,13 @@ function form(id){
   md.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{cat=b.dataset.cat;md.querySelectorAll('[data-cat]').forEach(x=>x.classList.toggle('on',x===b));if(!touched)$('#fu').value=CATS[cat].d});
   if(id)$('#dx').onclick=()=>{if(confirm('Excluir este agendamento?')){DB.appts=DB.appts.filter(x=>x.id!==id);save();close();render()}};
   $('#sv').onclick=()=>{
-    const name=$('#fn').value.trim(),date=$('#fd').value,h=$('#fh').value,du=parseInt($('#fu').value),rawPrice=$('#fpr').value.trim();
+    const name=$('#fn').value.trim(),date=$('#fd').value,h=$('#fh').value,du=parseInt($('#fu').value),rawPrice=$('#fpr').value.trim(),done=$('#fdone').checked;
     if(!name||!date||!h||!(du>=5))return err('Preencha cliente, data, início e duração.');
     const s=tm(h);if(s+du>1440)return err('O atendimento passa da meia-noite. Reduza a duração.');
     const c=clash(date,s,du,id);
-    if(c)return err(`⚠️ Conflito com <b>${esc(c.name)}</b> (${hm(c.start)}–${hm(c.start+c.dur)}).`,nextFree(date,s,du,id));
+    if(c&&!done)return err(`⚠️ Conflito com <b>${esc(c.name)}</b> (${hm(c.start)}–${hm(c.start+c.dur)}).`,nextFree(date,s,du,id));
     const price=rawPrice!==''?parseFloat(rawPrice):null;
-    const o={id:id||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,tel:$('#ftl').value.trim(),cat,svc:$('#fs').value.trim(),date,start:s,dur:du,price,obs:$('#fo').value.trim()};
+    const o={id:id||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,tel:$('#ftl').value.trim(),cat,svc:$('#fs').value.trim(),date,start:s,dur:du,price,done,obs:$('#fo').value.trim()};
     DB.appts=id?DB.appts.map(x=>x.id===id?o:x):[...DB.appts,o];
     save();day=date;mo=date.slice(0,8)+'01';close();if(tab==='cfg')tab='agenda';render();
   };
@@ -235,13 +272,24 @@ fi.onchange=async()=>{
 };
 
 document.addEventListener('click',e=>{
-  const t=e.target.closest('[data-t],[data-go],[data-pk],[data-m],[data-d],[data-ed],[data-bg],[data-act]');if(!t||t.closest('#md'))return;
+  const doneBtn=e.target.closest('[data-done]');
+  if(doneBtn){
+    e.stopPropagation();
+    const id=doneBtn.dataset.done;
+    const a=DB.appts.find(x=>x.id===id);
+    if(a){a.done=!a.done;save();render()}
+    return;
+  }
+  const catCard=e.target.closest('[data-cat-view]');
+  if(catCard){showCatList(catCard.dataset.catView);return;}
+
+  const t=e.target.closest('[data-t],[data-go],[data-pk],[data-m],[data-d],[data-ed],[data-bg],[data-act]');if(!t)return;
   const D=t.dataset;
   if(D.t){tab=D.t;render();scrollTo(0,0)}
   else if(D.go){day=D.go;mo=day.slice(0,8)+'01';tab='agenda';render();scrollTo(0,0)}
   else if(D.pk){day=D.pk;mo=day.slice(0,8)+'01';render()}
   else if(D.m){const f=pd(mo);mo=ymd(new Date(f.getFullYear(),f.getMonth()+ +D.m,1));render()}
-  else if(D.d!==undefined){day=D.d==='0'?ymd(new Date()):ad(day,+D.d);mo=day.slice(0,8)+'01';render()}
+  else if(D.d!==undefined){day=ad(day,+D.d);mo=day.slice(0,8)+'01';render()}
   else if(D.ed)form(D.ed);
   else if(D.bg){DB.cfg.bg=+D.bg;DB.cfg.bgImg=null;save();look();render()}
   else if(D.act==='bgup')pick('bg','image/*');
