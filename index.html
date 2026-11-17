@@ -121,7 +121,6 @@ const tm=s=>{const[h,m]=s.split(':').map(Number);return h*60+m};
 const hm=n=>`${pad(Math.floor(n/60))}:${pad(n%60)}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dl=(s,o)=>pd(s).toLocaleDateString('pt-BR',o);
-const mon=s=>ad(s,-((pd(s).getDay()+6)%7));
 const def=()=>({v:1,appts:[],cfg:{theme:null,bg:0,bgImg:null,logo:null,lastBackup:null}});
 let DB;try{DB=JSON.parse(localStorage.getItem(KEY))||def()}catch(e){DB=def()}
 DB.appts=DB.appts||[];DB.cfg={...def().cfg,...DB.cfg};
@@ -159,11 +158,12 @@ function home(){
   
   const catCounts={};
   Object.keys(CATS).forEach(k=>catCounts[k]=0);
-  DB.appts.filter(a=>a.date.startsWith(curYear+'')&&!a.done).forEach(a=>{if(catCounts[a.cat]!==undefined)catCounts[a.cat]++});
+  DB.appts.filter(a=>!a.done).forEach(a=>{if(catCounts[a.cat]!==undefined)catCounts[a.cat]++});
 
   return `<div class="g2"><div class="cd st"><b>${td.length}</b><span>hoje</span><small>${nx?'Próximo: '+hm(nx.start)+' · '+esc(nx.name):td.length?'Dia concluído ✓':'Dia livre'}</small></div>
 <div class="cd st"><b>${monthAppts.length}</b><span>este mês</span><small>${dl(monthStart,{day:'2-digit',month:'short'})} – ${dl(monthEnd,{day:'2-digit',month:'short'})}</small></div></div>
 <h3>Dias · arraste para o lado</h3><div class="wk">${days.map((d,i)=>`<button class="${d===t?'tdy':''}${cnt[d]?' hv':''}" data-go="${d}"><small>${dl(d,{weekday:'short'}).replace('.','')}${d.endsWith('-01')||!i?' '+dl(d,{month:'short'}).replace('.',''):''}</small><b>${pd(d).getDate()}</b><i>${cnt[d]||'·'}</i></button>`).join('')}</div>
+<h3>Todos agendamentos</h3>
 <div class="g5">${Object.keys(CATS).map(k=>`<div class="cd" style="--c:${CATS[k].c}" data-cat-view="${k}"><b>${catCounts[k]}</b><span>${k.replace('Atendimento Padrão','Padrão')}</span><i class="emj">${CATS[k].e}</i></div>`).join('')}</div>
 <h3>Hoje · ${dl(t,{weekday:'long',day:'numeric',month:'long'})}</h3>${dayOf(t).length?dayOf(t).map(card).join(''):'<p class="em">Nenhum atendimento hoje.</p>'}`;
 }
@@ -202,11 +202,10 @@ function render(){
 }
 
 function showCatList(catName){
-  const curYear=new Date().getFullYear();
-  const list=DB.appts.filter(a=>a.cat===catName&&a.date.startsWith(curYear+'')&&!a.done).sort((a,b)=>a.date.localeCompare(b.date)||a.start-b.start);
+  const list=DB.appts.filter(a=>a.cat===catName&&!a.done).sort((a,b)=>a.date.localeCompare(b.date)||a.start-b.start);
   const md=$('#md');
   md.dataset.activeCat = catName;
-  md.innerHTML=`<div class="sh"><h2>${CATS[catName].e} ${esc(catName)}</h2><small>Ano de ${curYear}</small><div style="margin-top:12px">${list.length?list.map(a=>`<div class="cd ap${a.done?' done':''}" style="--c:${CATS[catName].c}"><div class="tm"><b>${dl(a.date,{day:'2-digit',month:'2-digit'})}</b><small>${hm(a.start)}</small></div><div class="bd" style="cursor:pointer" data-ed="${a.id}"><b>${esc(a.name)}</b><div class="tag">${a.svc?esc(a.svc):'Atendimento'} ${a.price!=null&&a.price!==''?' · '+fmtMoney(a.price):''}</div></div><div class="actions"><button class="done-btn${a.done?' active':''}" data-done="${a.id}" title="Marcar como concluído">✓</button></div></div>`).join(''):'<p class="em">Nenhum atendimento nesta categoria neste ano.</p>'}</div><div class="row" style="margin-top:16px"><button class="bt" id="clcat">Fechar</button></div></div>`;
+  md.innerHTML=`<div class="sh"><h2>${CATS[catName].e} ${esc(catName)}</h2><small>Todos agendamentos (geral)</small><div style="margin-top:12px">${list.length?list.map(a=>`<div class="cd ap${a.done?' done':''}" style="--c:${CATS[catName].c}"><div class="tm"><b>${dl(a.date,{day:'2-digit',month:'2-digit',year:'2-digit'})}</b><small>${hm(a.start)}</small></div><div class="bd" style="cursor:pointer" data-ed="${a.id}"><b>${esc(a.name)}</b><div class="tag">${a.svc?esc(a.svc):'Atendimento'} ${a.price!=null&&a.price!==''?' · '+fmtMoney(a.price):''}</div></div><div class="actions"><button class="done-btn${a.done?' active':''}" data-done="${a.id}" title="Marcar como concluído">✓</button></div></div>`).join(''):'<p class="em">Nenhum atendimento pendente nesta categoria.</p>'}</div><div class="row" style="margin-top:16px"><button class="bt" id="clcat">Fechar</button></div></div>`;
   md.hidden=false;
   md.onclick=e=>{if(e.target===md)closeModal()};
   $('#clcat').onclick=closeModal;
@@ -219,6 +218,7 @@ function form(id){
   if(!id){const f=nextFree(a.date,a.start,a.dur);if(f!=null)a.start=f}
   let cat=a.cat,touched=!!id;
   const md=$('#md');
+  delete md.dataset.activeCat;
   md.innerHTML=`<div class="sh"><h2>${id?'Editar':'Novo'} agendamento</h2><div id="er" class="er" hidden></div>
 <label>Cliente<input id="fn" value="${esc(a.name)}" placeholder="Nome" autocomplete="off"></label>
 <label>WhatsApp<input id="ftl" type="tel" value="${esc(a.tel)}" placeholder="(00) 00000-0000"></label>
